@@ -1,0 +1,223 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/* VoltVibe Design System */
+:root {
+  /* Surface Colors */
+  --surface: #0a1326;
+  --surface-dim: #0a1326;
+  --surface-bright: #31394e;
+  --surface-container-lowest: #060d21;
+  --surface-container-low: #131b2f;
+  --surface-container: #171e33;
+  --surface-container-high: #202940;
+  --surface-container-highest: #2b344d;
+  
+  /* On Surface */
+  --on-surface: #f0f4ff;
+  --on-surface-variant: #8a94a6;
+  
+  /* Outline */
+  --outline: #3e485e;
+  --outline-variant: #2b344d;
+  
+  /* Primary - Electric Cyan */
+  --primary: #00d4ff;
+  --on-primary: #000000;
+  --primary-container: #00404d;
+  --on-primary-container: #99f0ff;
+  
+  /* Secondary - Electric Yellow */
+  --secondary: #ffd60a;
+  --on-secondary: #000000;
+  --secondary-dim: #e6c200;
+  --secondary-container: #332b00;
+  --on-secondary-container: #fff0a0;
+  
+  /* Tertiary */
+  --tertiary: #00d4ff;
+  --on-tertiary: #000000;
+  --tertiary-container: #00404d;
+  --on-tertiary-container: #99f0ff;
+  
+  /* Error */
+  --error: #ef4444;
+  --on-error: #ffffff;
+  --error-container: #7f1d1d;
+  --on-error-container: #fecaca;
+  
+  /* Success */
+  --success: #22c55e;
+  --on-success: #000000;
+  
+  /* Warning */
+  --warning: #f59e0b;
+  --on-warning: #000000;
+  
+  /* Theme tokens mapped for compatibility */
+  --background: #0a1326;
+  --foreground: #f0f4ff;
+  --card: #171e33;
+  --card-foreground: #f0f4ff;
+  --popover: #171e33;
+  --popover-foreground: #f0f4ff;
+  --muted: #202940;
+  --muted-foreground: #8a94a6;
+  --accent: #00d4ff;
+  --accent-foreground: #000000;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #2b344d;
+  --input: #202940;
+  --ring: #00d4ff;
+  --radius: 0.5rem;
+  
+  /* Chart colors */
+  --chart-1: #00d4ff;
+  --chart-2: #ffd60a;
+  --chart-3: #22c55e;
+  --chart-4: #f59e0b;
+  --chart-5: #ef4444;
+  
+  /* Sidebar */
+  --sidebar: #0a1326;
+  --sidebar-foreground: #f0f4ff;
+  --sidebar-primary: #00d4ff;
+  --sidebar-primary-foreground: #000000;
+  --sidebar-accent: #171e33;
+  --sidebar-accent-foreground: #f0f4ff;
+  --sidebar-border: #2b344d;
+  --sidebar-ring: #00d4ff;
+}
+
+@theme inline {
+  --font-sans: 'Space Grotesk', 'Space Grotesk Fallback', system-ui, sans-serif;
+  --font-mono: 'Geist Mono', 'Geist Mono Fallback', monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--on-primary);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--on-secondary);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  
+  /* Custom VoltVibe colors */
+  --color-surface: var(--surface);
+  --color-surface-container: var(--surface-container);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-cyan: var(--primary);
+  --color-yellow: var(--secondary);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom scrollbar for VoltVibe */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface-container-low);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--outline);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* Glow and shadow effects */
+.glow-primary {
+  box-shadow: 0 10px 40px -10px rgba(0, 212, 255, 0.25);
+}
+
+.glow-primary-strong {
+  box-shadow: 0 16px 64px -16px rgba(0, 212, 255, 0.4);
+}
+
+.glass-surface {
+  background: rgba(23, 30, 51, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Announcement ticker animation */
+@keyframes ticker {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-ticker {
+  animation: ticker 30s linear infinite;
+}
+
+/* Dynamic Interactions */
+.btn-dynamic {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-dynamic:hover {
+  transform: scale(1.03);
+  box-shadow: 0 8px 25px -8px rgba(0, 212, 255, 0.5);
+}
+.btn-dynamic:active {
+  transform: scale(0.97);
+}
+
+.card-hover {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.card-hover:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px -15px rgba(0, 212, 255, 0.25);
+  border-color: rgba(0, 212, 255, 0.3);
+}
