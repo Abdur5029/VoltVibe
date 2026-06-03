@@ -9,7 +9,11 @@ export async function GET(request: Request) {
     const url = category ? `${API_URL}/products/?category=${category}` : `${API_URL}/products/`;
 
     const res = await fetch(url);
-    if (!res.ok) throw new Error('Failed to fetch products');
+    if (!res.ok) {
+      const errorText = await res.text().catch(() => 'No response body');
+      console.error(`Failed to fetch from backend URL: ${url}. Status: ${res.status}. Body: ${errorText}`);
+      throw new Error(`Failed to fetch products: ${res.status}`);
+    }
     const products = await res.json();
 
     const mappedProducts = products.map((p: any, index: number) => ({
@@ -25,10 +29,10 @@ export async function GET(request: Request) {
     }));
 
     return NextResponse.json(mappedProducts, { status: 200 });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching products:", error);
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      { error: "Internal Server Error", details: error.message || error },
       { status: 500 }
     );
   }
