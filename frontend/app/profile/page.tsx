@@ -18,7 +18,7 @@ export default function ProfilePage() {
     
     if (status === 'authenticated' && session?.user?.id) {
       // Fetch user's orders
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api'
+const API_URL = (process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API_URL.includes('your-railway-url') ? process.env.NEXT_PUBLIC_API_URL : 'https://voltvibe-production.up.railway.app/api');
       fetch(`${API_URL}/orders/?user=${session.user.id}`)
         .then(res => res.json())
         .then(data => {

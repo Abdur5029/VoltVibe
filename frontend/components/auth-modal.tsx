@@ -54,7 +54,7 @@ export function AuthModal({ isOpen, onClose, initialTab = 'signin' }: AuthModalP
     setError('')
     try {
       // 1. Create User in Django
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api'
+const API_URL = (process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API_URL.includes('your-railway-url') ? process.env.NEXT_PUBLIC_API_URL : 'https://voltvibe-production.up.railway.app/api');
       const names = name.split(' ')
       const firstName = names[0]
       const lastName = names.slice(1).join(' ')
