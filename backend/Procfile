@@ -1,1 +1,1 @@
-web: gunicorn voltvibe_project.wsgi --log-file -
+web: python manage.py migrate && python seed.py && python load_speakers.py && gunicorn voltvibe_project.wsgi --log-file -
