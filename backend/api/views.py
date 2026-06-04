@@ -75,6 +75,37 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
+    def create(self, request, *args, **kwargs):
+        email = request.data.get('email')
+        if email:
+            try:
+                user = User.objects.get(email=email)
+                if not user.is_verified:
+                    otp = ''.join(random.choices(string.digits, k=6))
+                    user.verification_code = otp
+                    user.save(update_fields=['verification_code'])
+                    try:
+                        from django.core.mail import send_mail
+                        from django.conf import settings
+                        send_mail(
+                            subject="VoltVibe - Your Verification Code",
+                            message=f"Hi {user.first_name or user.username},\n\nYour account verification code is: {otp}\n\nPlease enter this code to activate your account.",
+                            from_email=settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'noreply@voltvibe.com',
+                            recipient_list=[user.email],
+                            fail_silently=True,
+                        )
+                    except Exception as e:
+                        print("Failed to send verification email:", e)
+                        
+                    return Response({
+                        'message': 'Account exists but is unverified. Verification code has been resent.',
+                        'email': email,
+                        'resend': True
+                    }, status=status.HTTP_200_OK)
+            except User.DoesNotExist:
+                pass
+        return super().create(request, *args, **kwargs)
+
     def perform_create(self, serializer):
         user = serializer.save()
         if user.email:

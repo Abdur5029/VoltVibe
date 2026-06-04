@@ -87,6 +87,11 @@ const API_URL = (process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API
         return
       }
 
+      const responseData = await res.json().catch(() => ({}))
+      if (responseData.resend) {
+        alert(responseData.message || "A verification code has been resent to your email.");
+      }
+
       // 2. Registration successful! Now transition to OTP tab.
       setTab('otp')
     } catch (err) {
@@ -299,6 +304,31 @@ const API_URL = (process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API
             >
               {loading ? 'Verifying...' : 'Verify & Sign In'}
             </Button>
+            <div className="flex justify-center text-sm pt-2">
+               <button
+                 type="button"
+                 className="text-[var(--primary)] hover:underline text-xs"
+                 onClick={async () => {
+                   setLoading(true)
+                   try {
+                     const res = await fetch('/api/auth/register', {
+                       method: 'POST',
+                       headers: { 'Content-Type': 'application/json' },
+                       body: JSON.stringify({ email, username: email, password: 'dummy-password-to-trigger-unverified-check' })
+                     })
+                     const data = await res.json().catch(() => ({}))
+                     alert(data.message || "A verification code has been resent to your email.");
+                   } catch (err) {
+                     alert("Failed to resend verification code.");
+                   } finally {
+                     setLoading(false)
+                   }
+                 }}
+                 disabled={loading}
+               >
+                 Resend Verification Code
+               </button>
+            </div>
           </form>
         )}
 
