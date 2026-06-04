@@ -121,13 +121,12 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         user = serializer.save()
+        user.is_verified = True
+        user.save(update_fields=['is_verified'])
         if user.email:
-            otp = ''.join(random.choices(string.digits, k=6))
-            user.verification_code = otp
-            user.save(update_fields=['verification_code'])
             send_mail_async(
-                subject="VoltVibe - Your Verification Code",
-                message=f"Hi {user.first_name or user.username},\n\nYour account verification code is: {otp}\n\nPlease enter this code to activate your account.",
+                subject="Welcome to VoltVibe!",
+                message=f"Hi {user.first_name or user.username},\n\nThank you for creating an account on VoltVibe. Your account is active and verified. Happy shopping!",
                 recipient_list=[user.email]
             )
                 

@@ -90,10 +90,22 @@ const API_URL = (process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API
       const responseData = await res.json().catch(() => ({}))
       if (responseData.resend) {
         alert(responseData.message || "A verification code has been resent to your email.");
+        setTab('otp')
+        return
       }
 
-      // 2. Registration successful! Now transition to OTP tab.
-      setTab('otp')
+      const signInRes = await signIn('credentials', {
+        redirect: false,
+        email,
+        password,
+      })
+      
+      if (signInRes?.error) {
+        setError('Registration successful, but auto-login failed. Please sign in manually.')
+        setTab('signin')
+      } else {
+        onClose()
+      }
     } catch (err) {
       setError('An unexpected error occurred during registration. Please try again.')
     } finally {
