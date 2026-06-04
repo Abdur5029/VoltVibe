@@ -124,7 +124,12 @@ export default function VoltVibePage() {
       alert("Order placed successfully! Thank you for shopping with VoltVibe.");
     } catch (error: any) {
       console.error(error);
-      alert(error.message || "There was an error placing your order. Please try again.");
+      if (error.message && (error.message.includes("object does not exist") || error.message.includes("Invalid pk"))) {
+        alert("Your session has expired or is invalid (e.g. database was reset). You will be signed out. Please sign in again.");
+        window.location.href = '/api/auth/signout';
+      } else {
+        alert(error.message || "There was an error placing your order. Please try again.");
+      }
     }
   };
 
