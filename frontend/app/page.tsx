@@ -32,6 +32,7 @@ export default function VoltVibePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalTab, setAuthModalTab] = useState<'signin' | 'register'>('signin');
+  const [accountInitialTab, setAccountInitialTab] = useState<"profile" | "addresses" | "payment" | "security" | "orders">("profile");
 
   useEffect(() => {
     fetch('/api/products')
@@ -133,9 +134,19 @@ export default function VoltVibePage() {
     }
   };
 
-  const handleNavigate = (view: View, category?: string) => {
+  const handleNavigate = (view: View, category?: string, extra?: string) => {
+    if (view === "account" && status !== "authenticated") {
+      setAuthModalTab('signin');
+      setAuthModalOpen(true);
+      return;
+    }
     setCurrentView(view);
     if (category) setSelectedCategory(category);
+    if (view === "account" && extra === "orders") {
+      setAccountInitialTab("orders");
+    } else if (view === "account") {
+      setAccountInitialTab("profile");
+    }
   };
 
   const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
@@ -374,7 +385,7 @@ export default function VoltVibePage() {
       )}
 
       {currentView === "account" && (
-        <AccountPage session={session} />
+        <AccountPage session={session} initialTab={accountInitialTab} />
       )}
 
       {currentView === "search" && (

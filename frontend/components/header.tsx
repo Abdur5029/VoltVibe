@@ -44,7 +44,7 @@ interface HeaderProps {
   selectedCategory?: string
   onCartClick: () => void
   onChatClick: () => void
-  onNavigate: (view: 'home' | 'category' | 'checkout' | 'admin' | 'search' | 'about' | 'contact' | 'account', category?: string) => void
+  onNavigate: (view: 'home' | 'category' | 'checkout' | 'admin' | 'search' | 'about' | 'contact' | 'account', category?: string, extra?: string) => void
   onCategorySelect: (slug: string) => void
   onSearch: (query: string) => void
   onOpenAuthModal: (tab: 'signin' | 'register') => void
@@ -293,7 +293,7 @@ export function Header({
                           <span className="text-sm">Language: English</span>
                         </button>
                         <button
-                          onClick={() => onNavigate && onNavigate('home')}
+                          onClick={() => onNavigate && onNavigate('account', undefined, 'orders')}
                           className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[var(--on-surface)] hover:bg-[var(--surface-container)] transition-colors"
                         >
                           <Package className="w-5 h-5 text-[var(--muted-foreground)]" />

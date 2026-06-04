@@ -6,12 +6,15 @@ import { Button } from '@/components/ui/button'
 
 type AccountTab = 'profile' | 'addresses' | 'payment' | 'security' | 'orders'
 
+const API_URL = (process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API_URL.includes('your-railway-url') ? process.env.NEXT_PUBLIC_API_URL : 'https://voltvibe-production.up.railway.app/api');
+
 interface AccountPageProps {
   session: any
+  initialTab?: AccountTab
 }
 
-export function AccountPage({ session }: AccountPageProps) {
-  const [activeTab, setActiveTab] = useState<AccountTab>('profile')
+export function AccountPage({ session, initialTab }: AccountPageProps) {
+  const [activeTab, setActiveTab] = useState<AccountTab>(initialTab || 'profile')
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [profileData, setProfileData] = useState({
     name: session?.user?.name || 'John Doe',
@@ -28,12 +31,21 @@ export function AccountPage({ session }: AccountPageProps) {
   const [isAddingCard, setIsAddingCard] = useState(false)
   const [newCard, setNewCard] = useState({ type: 'Credit', brand: 'MasterCard', last4: '', holder: '', expires: '' })
 
+  const [orders, setOrders] = useState<any[]>([])
+  const [loadingOrders, setLoadingOrders] = useState(false)
+
   const userId = (session?.user as any)?.id;
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab)
+    }
+  }, [initialTab])
 
   useEffect(() => {
     if (!userId) return;
 
-    fetch(`http://localhost:8000/api/users/${userId}/`)
+    fetch(`${API_URL}/users/${userId}/`)
       .then(res => res.json())
       .then(data => {
         if(data.email) {
@@ -51,18 +63,59 @@ export function AccountPage({ session }: AccountPageProps) {
         }
       });
 
-    fetch(`http://localhost:8000/api/addresses/?user=${userId}`)
+    fetch(`${API_URL}/addresses/?user=${userId}`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) setAddresses(data);
       });
 
-    fetch(`http://localhost:8000/api/payments/?user=${userId}`)
+    fetch(`${API_URL}/payments/?user=${userId}`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) setCards(data);
       });
   }, [userId]);
+
+  useEffect(() => {
+    if (activeTab === 'orders' && userId) {
+      setLoadingOrders(true);
+      fetch(`/api/orders?userId=${userId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            setOrders(data);
+          } else {
+            setOrders([]);
+          }
+        })
+        .catch(err => console.error("Error loading orders", err))
+        .finally(() => setLoadingOrders(false));
+    }
+  }, [activeTab, userId]);
+
+  const handleSimulateStatus = async (orderId: string, currentStatus: string) => {
+    const statusSequence = ['PENDING', 'PROCESSING', 'COMPLETED', 'CANCELLED'];
+    const currentIndex = statusSequence.indexOf(currentStatus);
+    if (currentIndex === -1 || currentStatus === 'COMPLETED' || currentStatus === 'CANCELLED') {
+      alert("This order is already in a final state.");
+      return;
+    }
+    const nextStatus = statusSequence[currentIndex + 1];
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: nextStatus })
+      });
+      if (res.ok) {
+        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: nextStatus } : o));
+      } else {
+        alert("Failed to update status on server.");
+      }
+    } catch (err) {
+      console.error("Simulation error", err);
+    }
+  };
 
   const tabs = [
     { id: 'profile', label: 'Personal Info', icon: User },
@@ -198,7 +251,7 @@ export function AccountPage({ session }: AccountPageProps) {
                           if (!userId) return;
                           const [first_name, ...rest] = editForm.name.split(' ');
                           const last_name = rest.join(' ');
-                          fetch(`http://localhost:8000/api/users/${userId}/`, {
+                          fetch(`${API_URL}/users/${userId}/`, {
                             method: 'PATCH',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
@@ -254,7 +307,7 @@ export function AccountPage({ session }: AccountPageProps) {
                         <Button variant="outline" onClick={() => setIsAddingAddress(false)}>Cancel</Button>
                         <Button onClick={() => {
                           if (!userId) return;
-                          fetch(`http://localhost:8000/api/addresses/`, {
+                          fetch(`${API_URL}/addresses/`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
@@ -286,14 +339,14 @@ export function AccountPage({ session }: AccountPageProps) {
                           {address.isDefault && <Badge className="mb-4 bg-[var(--primary)]/20 text-[var(--primary)]">Default Shipping</Badge>}
                           <h3 className="font-bold text-lg text-foreground mb-1">{address.title || 'Address'}</h3>
                           <p className="text-muted-foreground text-sm leading-relaxed mb-4">
-                            {address.name}<br />
-                            {address.street}<br />
-                            {address.city}<br />
-                            {address.country}
+                             {address.name}<br />
+                             {address.street}<br />
+                             {address.city}<br />
+                             {address.country}
                           </p>
                           <div className="flex items-center gap-3">
                             <button className="text-sm font-medium text-destructive hover:underline" onClick={() => {
-                              fetch(`http://localhost:8000/api/addresses/${address.id}/`, { method: 'DELETE' }).then(res => {
+                              fetch(`${API_URL}/addresses/${address.id}/`, { method: 'DELETE' }).then(res => {
                                 if (res.ok) setAddresses(addresses.filter(a => a.id !== address.id))
                               })
                             }}>Remove</button>
@@ -301,7 +354,7 @@ export function AccountPage({ session }: AccountPageProps) {
                               <>
                                 <span className="text-[var(--outline)]">|</span>
                                 <button className="text-sm font-medium text-[var(--primary)] hover:underline" onClick={() => {
-                                  fetch(`http://localhost:8000/api/addresses/${address.id}/`, {
+                                  fetch(`${API_URL}/addresses/${address.id}/`, {
                                     method: 'PATCH',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({ isDefault: true })
@@ -382,7 +435,7 @@ export function AccountPage({ session }: AccountPageProps) {
                             return;
                           }
                           if (!userId) return;
-                          fetch(`http://localhost:8000/api/payments/`, {
+                          fetch(`${API_URL}/payments/`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
@@ -433,7 +486,7 @@ export function AccountPage({ session }: AccountPageProps) {
                           <div className="mt-4 pt-4 border-t border-white/10 flex justify-end gap-4 relative z-10">
                             {!card.isDefault && (
                               <button className="text-xs text-white/70 hover:text-white" onClick={() => {
-                                fetch(`http://localhost:8000/api/payments/${card.id}/`, {
+                                fetch(`${API_URL}/payments/${card.id}/`, {
                                   method: 'PATCH',
                                   headers: { 'Content-Type': 'application/json' },
                                   body: JSON.stringify({ isDefault: true })
@@ -443,7 +496,7 @@ export function AccountPage({ session }: AccountPageProps) {
                               }}>Set Default</button>
                             )}
                             <button className="text-xs text-red-400 hover:text-red-300" onClick={() => {
-                              fetch(`http://localhost:8000/api/payments/${card.id}/`, { method: 'DELETE' }).then(res => {
+                              fetch(`${API_URL}/payments/${card.id}/`, { method: 'DELETE' }).then(res => {
                                 if (res.ok) setCards(cards.filter(c => c.id !== card.id))
                               })
                             }}>Remove</button>
@@ -508,41 +561,156 @@ export function AccountPage({ session }: AccountPageProps) {
               {activeTab === 'orders' && (
                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                   <div>
-                    <h2 className="text-2xl font-bold text-foreground">Order History</h2>
-                    <p className="text-muted-foreground text-sm">View and track your previous purchases.</p>
+                    <h2 className="text-2xl font-bold text-foreground">Order History & Tracking</h2>
+                    <p className="text-muted-foreground text-sm">Track your live shipments and view previous purchases.</p>
                   </div>
 
-                  <div className="space-y-4">
-                    {/* Empty State / Fake Order */}
-                    <div className="bg-[var(--surface-container-low)] border border-[var(--outline-variant)] rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 hover:border-[var(--primary)]/30 transition-colors">
-                      <div className="flex items-center gap-4 w-full md:w-auto">
-                        <div className="w-16 h-16 bg-[var(--surface-container-high)] rounded-lg flex items-center justify-center flex-shrink-0 border border-[var(--outline)]">
-                          <Package className="w-8 h-8 text-[var(--muted-foreground)]" />
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground mb-1">Order #VLT-847291</p>
-                          <h3 className="font-bold text-foreground">Sony WH-1000XM5</h3>
-                          <p className="text-sm text-[var(--success)] font-medium mt-1">Delivered on May 15, 2024</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4 w-full md:w-auto">
-                        <div className="text-right flex-grow">
-                          <p className="font-bold text-lg text-foreground">$398.00</p>
-                          <p className="text-xs text-muted-foreground">1 item</p>
-                        </div>
-                        <Button variant="outline" className="flex-shrink-0">View Details</Button>
-                      </div>
+                  {loadingOrders ? (
+                    <div className="text-center py-12">
+                      <div className="w-8 h-8 border-4 border-[var(--primary)] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                      <p className="text-muted-foreground">Loading orders...</p>
                     </div>
-
+                  ) : orders.length === 0 ? (
                     <div className="text-center py-12 border-2 border-dashed border-[var(--outline-variant)] rounded-xl">
                       <Package className="w-12 h-12 text-[var(--muted-foreground)] mx-auto mb-4 opacity-50" />
-                      <h3 className="text-lg font-semibold text-foreground">No more orders</h3>
-                      <p className="text-muted-foreground mt-2">When you place orders, they will appear here.</p>
-                      <Button className="mt-6 btn-dynamic bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] text-[var(--on-primary)]">
-                        Start Shopping
-                      </Button>
+                      <h3 className="text-lg font-semibold text-foreground">No orders placed yet</h3>
+                      <p className="text-muted-foreground mt-2">When you place an order, it will appear here for tracking.</p>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {orders.map((order) => {
+                        const statusColors: Record<string, string> = {
+                          PENDING: 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/30',
+                          PROCESSING: 'bg-blue-500/20 text-blue-500 border border-blue-500/30',
+                          COMPLETED: 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/30',
+                          CANCELLED: 'bg-rose-500/20 text-rose-500 border border-rose-500/30',
+                        };
+
+                        const orderDate = new Date(order.createdAt).toLocaleDateString(undefined, {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        });
+
+                        return (
+                          <div key={order.id} className="bg-[var(--surface-container-low)] border border-[var(--outline-variant)] rounded-2xl p-6 space-y-6 hover:border-[var(--primary)]/30 transition-colors">
+                            {/* Order Info Header */}
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--outline-variant)] pb-4">
+                              <div className="space-y-1">
+                                <p className="text-xs text-muted-foreground font-mono">Order ID: {order.id}</p>
+                                <p className="text-sm font-semibold text-foreground">Placed on {orderDate}</p>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${statusColors[order.status] || 'bg-slate-500/20 text-slate-500'}`}>
+                                  {order.status}
+                                </span>
+                                <span className="text-lg font-bold text-foreground">
+                                  ${order.totalAmount.toFixed(2)}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Stepper tracking progress visualization */}
+                            {order.status !== 'CANCELLED' ? (
+                              <div className="py-4">
+                                <p className="text-sm font-semibold text-foreground mb-4">Live Shipment Tracking</p>
+                                <div className="relative flex items-center justify-between max-w-xl mx-auto">
+                                  {/* Progress Line */}
+                                  <div className="absolute left-0 right-0 h-1 bg-[var(--surface-container-high)] -z-10 rounded-full">
+                                    <div 
+                                      className="h-full bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] rounded-full transition-all duration-500" 
+                                      style={{
+                                        width: order.status === 'PENDING' ? '0%' : order.status === 'PROCESSING' ? '50%' : '100%'
+                                      }}
+                                    />
+                                  </div>
+
+                                  {/* Step 1: Placed */}
+                                  <div className="flex flex-col items-center">
+                                    <div className="w-8 h-8 rounded-full bg-[var(--primary)] text-[var(--on-primary)] flex items-center justify-center font-bold text-sm shadow-[0_0_10px_rgba(0,212,255,0.4)]">
+                                      ✓
+                                    </div>
+                                    <span className="text-xs font-semibold mt-2 text-foreground">Order Placed</span>
+                                  </div>
+
+                                  {/* Step 2: Processing */}
+                                  <div className="flex flex-col items-center">
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 ${
+                                      order.status === 'PROCESSING' || order.status === 'COMPLETED'
+                                        ? 'bg-[var(--primary)] text-[var(--on-primary)] shadow-[0_0_10px_rgba(0,212,255,0.4)]'
+                                        : 'bg-[var(--surface-container-high)] text-muted-foreground border border-[var(--outline-variant)]'
+                                    }`}>
+                                      {order.status === 'COMPLETED' ? '✓' : '2'}
+                                    </div>
+                                    <span className={`text-xs font-semibold mt-2 ${order.status === 'PROCESSING' || order.status === 'COMPLETED' ? 'text-foreground' : 'text-muted-foreground'}`}>
+                                      Processing
+                                    </span>
+                                  </div>
+
+                                  {/* Step 3: Shipped / Completed */}
+                                  <div className="flex flex-col items-center">
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 ${
+                                      order.status === 'COMPLETED'
+                                        ? 'bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] text-[var(--on-primary)] shadow-[0_0_10px_rgba(0,212,255,0.4)]'
+                                        : 'bg-[var(--surface-container-high)] text-muted-foreground border border-[var(--outline-variant)]'
+                                    }`}>
+                                      {order.status === 'COMPLETED' ? '✓' : '3'}
+                                    </div>
+                                    <span className={`text-xs font-semibold mt-2 ${order.status === 'COMPLETED' ? 'text-foreground' : 'text-muted-foreground'}`}>
+                                      Delivered
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl text-center">
+                                <p className="text-sm font-semibold text-rose-500">This order has been cancelled.</p>
+                              </div>
+                            )}
+
+                            {/* Ordered Items list */}
+                            <div className="space-y-3 pt-2">
+                              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Items in Package</p>
+                              {order.orderItems && order.orderItems.map((item: any) => (
+                                <div key={item.id} className="flex items-center gap-4 bg-[var(--surface-container-high)] p-3 rounded-xl border border-[var(--outline-variant)]">
+                                  {item.product_image ? (
+                                    <img 
+                                      src={item.product_image} 
+                                      alt={item.product_name || 'Product'} 
+                                      className="w-12 h-12 object-contain bg-white rounded-lg border p-1"
+                                    />
+                                  ) : (
+                                    <div className="w-12 h-12 bg-slate-200 rounded-lg flex items-center justify-center border">
+                                      <Package className="w-6 h-6 text-slate-400" />
+                                    </div>
+                                  )}
+                                  <div className="flex-grow">
+                                    <h4 className="font-bold text-foreground text-sm">{item.product_name || 'Item'}</h4>
+                                    <p className="text-xs text-muted-foreground">Qty: {item.quantity} × ${item.price.toFixed(2)}</p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="font-bold text-sm text-foreground">${(item.quantity * item.price).toFixed(2)}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Simulation buttons */}
+                            {order.status !== 'COMPLETED' && order.status !== 'CANCELLED' && (
+                              <div className="pt-4 border-t border-[var(--outline-variant)] flex justify-end">
+                                <Button 
+                                  onClick={() => handleSimulateStatus(order.id, order.status)}
+                                  className="btn-dynamic bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] text-[var(--on-primary)] shadow-[0_0_15px_rgba(0,212,255,0.2)] text-xs py-1.5 px-4 h-auto"
+                                >
+                                  Simulate Next Delivery Step
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
 
