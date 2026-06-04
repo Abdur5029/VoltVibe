@@ -115,15 +115,16 @@ export default function VoltVibePage() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to place order');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to place order');
       }
 
       setCartItems([]);
       setCurrentView("home");
       alert("Order placed successfully! Thank you for shopping with VoltVibe.");
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert("There was an error placing your order. Please try again.");
+      alert(error.message || "There was an error placing your order. Please try again.");
     }
   };
 

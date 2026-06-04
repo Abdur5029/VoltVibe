@@ -38,6 +38,9 @@ class GoogleLoginView(APIView):
             
         try:
             user = User.objects.get(email=email)
+            if not user.is_verified:
+                user.is_verified = True
+                user.save()
         except User.DoesNotExist:
             username = email.split('@')[0]
             base_username = username

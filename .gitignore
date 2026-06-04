@@ -1,0 +1,8 @@
+.vercel
+__pycache__/
+*.pyc
+.next/
+node_modules/
+backend/venv/
+backend/test_api.py
+backend/db.sqlite3

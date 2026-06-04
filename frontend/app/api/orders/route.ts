@@ -47,11 +47,23 @@ export async function POST(request: Request) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user: userId, totalAmount })
     });
-    if (!orderRes.ok) throw new Error('Failed to create order');
+    
+    if (!orderRes.ok) {
+      const errorText = await orderRes.text();
+      console.error(`[orders/route.ts] Backend returned error ${orderRes.status}:`, errorText);
+      try {
+        const errorJson = JSON.parse(errorText);
+        const errMsg = Array.isArray(errorJson) ? errorJson[0] : (errorJson.error || errorJson.detail || errorText);
+        return NextResponse.json({ error: errMsg }, { status: orderRes.status });
+      } catch {
+        return NextResponse.json({ error: errorText || "Failed to create order" }, { status: orderRes.status });
+      }
+    }
+    
     const newOrder = await orderRes.json();
 
     for (const item of orderItems) {
-      await fetch(`${API_URL}/order-items/`, {
+      const itemRes = await fetch(`${API_URL}/order-items/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -61,13 +73,25 @@ export async function POST(request: Request) {
           price: item.price
         })
       });
+      
+      if (!itemRes.ok) {
+        const errorText = await itemRes.text();
+        console.error(`[orders/route.ts] Backend returned error ${itemRes.status} for order item:`, errorText);
+        try {
+          const errorJson = JSON.parse(errorText);
+          const errMsg = Array.isArray(errorJson) ? errorJson[0] : (errorJson.error || errorJson.detail || errorText);
+          return NextResponse.json({ error: errMsg }, { status: itemRes.status });
+        } catch {
+          return NextResponse.json({ error: errorText || "Failed to create order item" }, { status: itemRes.status });
+        }
+      }
     }
 
     return NextResponse.json(newOrder, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating order:", error);
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      { error: error.message || "Internal Server Error" },
       { status: 500 }
     );
   }
