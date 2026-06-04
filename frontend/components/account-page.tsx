@@ -695,17 +695,7 @@ export function AccountPage({ session, initialTab }: AccountPageProps) {
                               ))}
                             </div>
 
-                            {/* Simulation buttons */}
-                            {order.status !== 'COMPLETED' && order.status !== 'CANCELLED' && (
-                              <div className="pt-4 border-t border-[var(--outline-variant)] flex justify-end">
-                                <Button 
-                                  onClick={() => handleSimulateStatus(order.id, order.status)}
-                                  className="btn-dynamic bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] text-[var(--on-primary)] shadow-[0_0_15px_rgba(0,212,255,0.2)] text-xs py-1.5 px-4 h-auto"
-                                >
-                                  Simulate Next Delivery Step
-                                </Button>
-                              </div>
-                            )}
+
                           </div>
                         );
                       })}
