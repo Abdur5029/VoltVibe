@@ -109,37 +109,48 @@ export function AIChatOverlay({ isOpen, onClose, products, onAddToCart }: AIChat
   }
 
   const renderMessageContent = (content: string) => {
-    const productMatch = content.match(/\[PRODUCT:\s*([a-zA-Z0-9-]+)\s*\]/);
-    if (productMatch && products) {
-      const productId = productMatch[1];
-      const product = products.find(p => p.id === productId || String(p.id) === productId);
-      const textContent = content.replace(productMatch[0], '').trim();
-      
+    if (!products || products.length === 0) {
+      return <p className="text-sm whitespace-pre-wrap">{content}</p>;
+    }
+
+    const regex = /\[PRODUCT:\s*([a-zA-Z0-9-]+)\s*\]/g;
+    const matches = Array.from(content.matchAll(regex));
+    
+    if (matches.length > 0) {
+      const recommendedProducts = matches
+        .map(match => {
+          const productId = match[1];
+          return products.find(p => p.id === productId || String(p.id) === productId);
+        })
+        .filter(Boolean);
+
+      const textContent = content.replace(regex, '').trim();
+
       return (
         <div className="flex flex-col gap-2">
           {textContent && <p className="text-sm whitespace-pre-wrap">{textContent}</p>}
-          {product ? (
-            <div className="mt-2 bg-[var(--surface)] border border-[var(--outline)] rounded-lg p-3 flex gap-3 shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-16 h-16 bg-[var(--surface-container-high)] rounded-md flex-shrink-0 overflow-hidden">
-                 <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
-              </div>
-              <div className="flex-1 flex flex-col justify-between">
-                <div>
-                  <h4 className="text-sm font-semibold text-[var(--on-surface)] line-clamp-1">{product.name}</h4>
-                  <p className="text-xs text-[var(--primary)] font-bold">${product.price}</p>
+          <div className="flex flex-col gap-2 mt-2">
+            {recommendedProducts.map((product: any, idx: number) => (
+              <div key={`${product.id}-${idx}`} className="bg-[var(--surface)] border border-[var(--outline)] rounded-lg p-3 flex gap-3 shadow-sm hover:shadow-md transition-shadow">
+                <div className="w-16 h-16 bg-[var(--surface-container-high)] rounded-md flex-shrink-0 overflow-hidden">
+                   <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
                 </div>
-                <Button 
-                  size="sm" 
-                  className="h-7 text-xs w-full mt-1 bg-[var(--primary)] text-[var(--on-primary)] hover:bg-[var(--primary)]/90"
-                  onClick={() => onAddToCart && onAddToCart(product)}
-                >
-                  Add to Cart
-                </Button>
+                <div className="flex-1 flex flex-col justify-between">
+                  <div>
+                    <h4 className="text-sm font-semibold text-[var(--on-surface)] line-clamp-1">{product.name}</h4>
+                    <p className="text-xs text-[var(--primary)] font-bold">${product.price}</p>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    className="h-7 text-xs w-full mt-1 bg-[var(--primary)] text-[var(--on-primary)] hover:bg-[var(--primary)]/90"
+                    onClick={() => onAddToCart && onAddToCart(product)}
+                  >
+                    Add to Cart
+                  </Button>
+                </div>
               </div>
-            </div>
-          ) : (
-            <p className="text-xs text-[var(--error)] mt-2">[Product ID not found]</p>
-          )}
+            ))}
+          </div>
         </div>
       );
     }
