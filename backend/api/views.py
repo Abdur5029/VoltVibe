@@ -3,9 +3,30 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.contrib.auth import authenticate
 import os
+import threading
+from django.core.mail import send_mail
+from django.conf import settings
 from openai import OpenAI
 from .models import User, Product, Order, OrderItem, Address, PaymentMethod, Review, Wishlist
 from .serializers import UserSerializer, ProductSerializer, OrderSerializer, OrderItemSerializer, AddressSerializer, PaymentMethodSerializer, ReviewSerializer, WishlistSerializer
+
+def send_mail_async(subject, message, recipient_list, html_message=None):
+    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@voltvibe.com')
+    def run():
+        try:
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=from_email,
+                recipient_list=recipient_list,
+                html_message=html_message,
+                fail_silently=True
+            )
+            print(f"Async email sent successfully to {recipient_list}")
+        except Exception as e:
+            print("Async email sending failed:", e)
+            
+    threading.Thread(target=run).start()
 
 class LoginView(APIView):
     def post(self, request):
@@ -84,19 +105,11 @@ class UserViewSet(viewsets.ModelViewSet):
                     otp = ''.join(random.choices(string.digits, k=6))
                     user.verification_code = otp
                     user.save(update_fields=['verification_code'])
-                    try:
-                        from django.core.mail import send_mail
-                        from django.conf import settings
-                        send_mail(
-                            subject="VoltVibe - Your Verification Code",
-                            message=f"Hi {user.first_name or user.username},\n\nYour account verification code is: {otp}\n\nPlease enter this code to activate your account.",
-                            from_email=settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'noreply@voltvibe.com',
-                            recipient_list=[user.email],
-                            fail_silently=True,
-                        )
-                    except Exception as e:
-                        print("Failed to send verification email:", e)
-                        
+                    send_mail_async(
+                        subject="VoltVibe - Your Verification Code",
+                        message=f"Hi {user.first_name or user.username},\n\nYour account verification code is: {otp}\n\nPlease enter this code to activate your account.",
+                        recipient_list=[user.email]
+                    )
                     return Response({
                         'message': 'Account exists but is unverified. Verification code has been resent.',
                         'email': email,
@@ -112,18 +125,11 @@ class UserViewSet(viewsets.ModelViewSet):
             otp = ''.join(random.choices(string.digits, k=6))
             user.verification_code = otp
             user.save(update_fields=['verification_code'])
-            try:
-                from django.core.mail import send_mail
-                from django.conf import settings
-                send_mail(
-                    subject="VoltVibe - Your Verification Code",
-                    message=f"Hi {user.first_name or user.username},\n\nYour account verification code is: {otp}\n\nPlease enter this code to activate your account.",
-                    from_email=settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'noreply@voltvibe.com',
-                    recipient_list=[user.email],
-                    fail_silently=True,
-                )
-            except Exception as e:
-                print("Failed to send verification email:", e)
+            send_mail_async(
+                subject="VoltVibe - Your Verification Code",
+                message=f"Hi {user.first_name or user.username},\n\nYour account verification code is: {otp}\n\nPlease enter this code to activate your account.",
+                recipient_list=[user.email]
+            )
                 
     @action(detail=False, methods=['post'])
     def verify(self, request):
@@ -177,29 +183,24 @@ class OrderViewSet(viewsets.ModelViewSet):
 
         order = serializer.save()
         if order.user and order.user.email:
-            try:
-                html_message = f"""
-                <html>
-                    <body>
-                        <h2>Thank you for your order, {order.user.first_name or 'Valued Customer'}!</h2>
-                        <p>Your order <strong>#{order.id}</strong> has been received and is currently being processed.</p>
-                        <p><strong>Total Amount:</strong> ${order.totalAmount}</p>
-                        <br/>
-                        <p>We will notify you once your items ship.</p>
-                        <p>Best regards,<br/>The VoltVibe Team</p>
-                    </body>
-                </html>
-                """
-                send_mail(
-                    subject=f"VoltVibe Order Confirmation - #{order.id}",
-                    message=f"Thank you for your purchase! Your order #{order.id} has been received.\nTotal: ${order.totalAmount}",
-                    from_email=settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'noreply@voltvibe.com',
-                    recipient_list=[order.user.email],
-                    html_message=html_message,
-                    fail_silently=True,
-                )
-            except Exception as e:
-                print("Failed to send order email:", e)
+            html_message = f"""
+            <html>
+                <body>
+                    <h2>Thank you for your order, {order.user.first_name or 'Valued Customer'}!</h2>
+                    <p>Your order <strong>#{order.id}</strong> has been received and is currently being processed.</p>
+                    <p><strong>Total Amount:</strong> ${order.totalAmount}</p>
+                    <br/>
+                    <p>We will notify you once your items ship.</p>
+                    <p>Best regards,<br/>The VoltVibe Team</p>
+                </body>
+            </html>
+            """
+            send_mail_async(
+                subject=f"VoltVibe Order Confirmation - #{order.id}",
+                message=f"Thank you for your purchase! Your order #{order.id} has been received.\nTotal: ${order.totalAmount}",
+                recipient_list=[order.user.email],
+                html_message=html_message
+            )
 
 class ReviewViewSet(viewsets.ModelViewSet):
     queryset = Review.objects.all()
